@@ -6,11 +6,13 @@ Rails.application.routes.draw do
 
 
   resources :users,only: [:show,:index,:edit,:update] do
-    member do
-      get :following, :followers
-    end
+    resource :relationships, only: [:create,:destroy]
+      # フォロー一覧
+      get :follows, on: :member
+      # フォロワー一覧
+      get :followers, on: :member
   end
-  resources :relationships, only: [:create,:destroy]
+
   resources :books do
   	resource :favorites, only: [:create, :destroy]
     resources :book_comments,only: [:create,:destroy]

@@ -16,12 +16,16 @@ class User < ApplicationRecord
   # いいね機能
   has_many :favorites, dependent: :destroy
 
-  # フォロー機能
-  has_many :relationships
-  has_many :followings, through: :relationships, source: :follow
-  # フォロワー機能
-  has_many :reverse_of_relationships, class_name: 'Relationship', foreign_key: 'follow_id'
-  has_many :followers, through: :reverse_of_relationships, source: :user
+
+  # フォロー取得
+  has_many :active_relationships, class_name: "Relationship", foreign_key: :following_id, dependent: :destroy
+  # 中間テーブルを介して「follower」モデルのUser(フォローされた側)を集めることを「following」と定義
+  has_many :followings, through: :active_relationships, source: :follower
+
+  # フォロワーの取得
+  has_many :passive_relationships, class_name: "Relationship", foreign_key: :follower_id, dependent: :destroy
+  # 中間テーブルを介して「following」モデルのUser(フォローする側)を集めることを「followed」と定義
+  has_many :followers, through: :passive_relationships, source: :following
 
   #バリデーションは該当するモデルに設定する。エラーにする条件を設定できる。
 
@@ -31,21 +35,19 @@ class User < ApplicationRecord
     # selfにはcurrent_userが入る
   end
 
-  # フォロー機能
-  # 自分自身ではないか？
-  def follow(other_user)
-    unless self == other_user
-      self.relationships.find_or_create_by(follow_id: other_user.id)
-    end
-  end
-  # フォーローを外す機能
-  def unfollow(other_user)
-    relationship = self.relationships.find_by(follow_id: other_user.id)
-    relationship.destroy if relationship
+  # フォロー済みか判定
+  def followed_by?(user)
+      passive_relationships.find_by(following_id: user.id).present?
   end
 
-  def following?(other_user)
-    self.followings.include?(other_user)
-  end
+  # フォローを外す機能
+  # def unfollow(user_id)
+  #   active_relationships.find_by(follower_id: user.id).destroy
+  # end
+
+  # フォロー機能
+  # def follow(user_id)
+  #   active_relationships.create(follower_id: user_id)
+  # end
 
 end
